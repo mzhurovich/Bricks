@@ -6,13 +6,16 @@
 
 # TODO(dkorolev): Add a top-level 'make update' target to update from GitHub.
 
-.PHONY: test all indent clean check coverage readlink deps leveldb
+.PHONY: test all indent clean check coverage readlink
 
 # Need to know where to invoke scripts from, since `Makefile` can be a relative path symlink.
 MAKEFILE_NAME = $(lastword $(MAKEFILE_LIST))
 CURRENT_SCRIPTS_DIR := $(patsubst %\,%,$(patsubst %/,%,$(dir $(shell readlink "$(MAKEFILE_NAME)" || echo "$(MAKEFILE_NAME)"))))
 CURRENT_SCRIPTS_DIR_FULL_PATH := $(shell "$(CURRENT_SCRIPTS_DIR)/fullpath.sh" "$(CURRENT_SCRIPTS_DIR)" )
 THIRDPARTY_PATH := ${CURRENT_SCRIPTS_DIR_FULL_PATH}/../3rdparty
+
+LIBLEVELDB_A=${THIRDPARTY_PATH}/leveldb/libleveldb.a
+DEPS=${LIBLEVELDB_A}
 
 CPLUSPLUS?=g++
 INC=-I${THIRDPARTY_PATH}/leveldb/include
@@ -44,14 +47,10 @@ default: all
 		find .current/ -perm +111 -type f -exec "{}" ";" ; \
 	fi
 
-deps: leveldb
-
-leveldb: ${THIRDPARTY_PATH}/leveldb/libleveldb.a
-
-${THIRDPARTY_PATH}/leveldb/libleveldb.a:
+${LIBLEVELDB_A}:
 	(cd ${THIRDPARTY_PATH}/leveldb; make)
 
-test: .current/test deps
+test: .current/test
 	.current/test --bricks_runtime_arch=${OS}
 
 debug:
@@ -62,7 +61,7 @@ all: ${BIN}
 clean:
 	rm -rf .current core impl/.current impl/core
 
-.current/%: %.cc *.h deps
+.current/%: %.cc *.h ${DEPS}
 	mkdir -p .current
 	${CPLUSPLUS} ${CPPFLAGS} -o $@ $< ${LDFLAGS}
 
