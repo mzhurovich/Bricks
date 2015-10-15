@@ -7,12 +7,19 @@
 
 set -u -e
 
-CPPFLAGS="-std=c++11 -g -Wall -W -DCURRENT_TEST_COMPILATION"
+CURRENT_SCRIPTS_DIR=$( dirname "${BASH_SOURCE[0]}" )
+CURRENT_SCRIPTS_DIR_FULL_PATH=$( "$CURRENT_SCRIPTS_DIR/fullpath.sh" "$CURRENT_SCRIPTS_DIR" )
+THIRDPARTY_PATH="$CURRENT_SCRIPTS_DIR_FULL_PATH/../3rdparty"
+
+INC="-I$THIRDPARTY_PATH/leveldb/include"
+LIBS="-L$THIRDPARTY_PATH/leveldb"
+CPPFLAGS="-std=c++11 -g -Wall -W -DCURRENT_TEST_COMPILATION $INC $LIBS"
 LDFLAGS="-pthread"
 
 if [ $(uname) = "Darwin" ] ; then
   CPPFLAGS+=" -stdlib=libc++ -x objective-c++ -fobjc-arc"
-  LDFLAGS+=" -framework Foundation"
+# Commented out my @mzhurovich -- looks like everything works fine without this flag
+# LDFLAGS+=" -framework Foundation"
 fi
 
 # NOTE: TMP_DIR must be resolved from the current working directory.
