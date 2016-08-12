@@ -270,15 +270,15 @@ struct VariantImpl<NAME, TypeListImpl<TYPES...>> : CurrentVariantNameHelper<NAME
 };
 
 // `Variant<...>` can accept either a list of types, or a `TypeList<...>`.
-template <class NAME, typename T, typename... TS>
+template <class NAME, typename... TS>
 struct VariantSelector {
-  using typelist_t = TypeListImpl<T, TS...>;
+  using typelist_t = TypeListImpl<TS...>;
   using type = VariantImpl<NAME, typelist_t>;
 };
 
-template <class NAME, typename T, typename... TS>
-struct VariantSelector<NAME, TypeListImpl<T, TS...>> {
-  using typelist_t = TypeListImpl<T, TS...>;
+template <class NAME, typename... TS>
+struct VariantSelector<NAME, TypeListImpl<TS...>> {
+  using typelist_t = TypeListImpl<TS...>;
   using type = VariantImpl<NAME, typelist_t>;
 };
 
