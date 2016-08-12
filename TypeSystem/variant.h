@@ -43,6 +43,18 @@ namespace current {
 
 struct BypassVariantTypeCheck {};
 
+template <typename NAME, typename TYPELIST>
+struct CurrentVariantNameHelper : CurrentVariant {
+  static std::string VariantName() { return NAME::VariantNameImpl(); }
+};
+
+template <typename TYPELIST>
+struct CurrentVariantNameHelper<reflection::CurrentVariantDefaultName, TYPELIST> : CurrentVariant {
+  static std::string VariantName() {
+    return reflection::CurrentVariantDefaultName::template VariantNameImpl<TYPELIST>();
+  }
+};
+
 // Note: `Variant<...>` never uses `TypeList<...>`, only `TypeListImpl<...>`.
 // Thus, it emphasizes performance over correctness.
 // The user hold the risk of having duplicate types, and it's their responsibility to pass in a `TypeList<...>`
@@ -56,7 +68,7 @@ template <typename NAME, typename TYPE_LIST>
 struct VariantImpl;
 
 template <typename NAME, typename... TYPES>
-struct VariantImpl<NAME, TypeListImpl<TYPES...>> : CurrentVariantImpl<NAME> {
+struct VariantImpl<NAME, TypeListImpl<TYPES...>> : CurrentVariantNameHelper<NAME, TypeListImpl<TYPES...>> {
   using typelist_t = TypeListImpl<TYPES...>;
 
   static constexpr size_t typelist_size = typelist_t::size;
@@ -258,16 +270,16 @@ struct VariantImpl<NAME, TypeListImpl<TYPES...>> : CurrentVariantImpl<NAME> {
 };
 
 // `Variant<...>` can accept either a list of types, or a `TypeList<...>`.
-template <template <typename> class NAME, typename T, typename... TS>
+template <class NAME, typename T, typename... TS>
 struct VariantSelector {
   using typelist_t = TypeListImpl<T, TS...>;
-  using type = VariantImpl<NAME<typelist_t>, typelist_t>;
+  using type = VariantImpl<NAME, typelist_t>;
 };
 
-template <template <typename> class NAME, typename T, typename... TS>
+template <class NAME, typename T, typename... TS>
 struct VariantSelector<NAME, TypeListImpl<T, TS...>> {
   using typelist_t = TypeListImpl<T, TS...>;
-  using type = VariantImpl<NAME<typelist_t>, typelist_t>;
+  using type = VariantImpl<NAME, typelist_t>;
 };
 
 template <typename... TS>
