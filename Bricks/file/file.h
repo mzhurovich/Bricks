@@ -236,89 +236,75 @@ struct FileSystem {
                                   ITEM_HANDLER&& item_handler,
                                   ScanDirParameters parameters = ScanDirParameters::ListFilesOnly,
                                   ScanDirRecursive recursive = ScanDirRecursive::No) {
-    if (recursive == ScanDirRecursive::No) {
 #ifdef CURRENT_WINDOWS
-      WIN32_FIND_DATAA find_data;
-      HANDLE handle = ::FindFirstFileA((directory + "\\*.*").c_str(), &find_data);
-      if (handle == INVALID_HANDLE_VALUE) {
-        CURRENT_THROW(DirDoesNotExistException(directory));
-      } else {
-        struct ScopedCloseFindFileHandle {
-          HANDLE handle_;
-          ScopedCloseFindFileHandle(HANDLE handle) : handle_(handle) {}
-          ~ScopedCloseFindFileHandle() { ::FindClose(handle_); }
-        };
-        const ScopedCloseFindFileHandle closer(handle);
-        do {
-          const char* const name = find_data.cFileName;
-          if (ScanDirCanHandleName(name)) {
-            const bool is_directory = (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
-            const ScanDirParameters mask = is_directory
-                                             ? ScanDirParameters::ListDirsOnly
-                                             : ScanDirParameters::ListFilesOnly;
-            if (static_cast<int>(parameters) & static_cast<int>(mask)) {
-              if (!item_handler(ScanDirItemInfo(name, JoinPath(directory, name), is_directory))) {
-                return;
-              }
-            }
-          }
-        } while (::FindNextFileA(handle, &find_data) != 0);
-      }
-#else
-      DIR* dir = ::opendir(directory.c_str());
-      const auto closedir_guard = MakeScopeGuard([dir]() {
-        if (dir) {
-          ::closedir(dir);
-        }
-      });
-      if (dir) {
-        while (struct dirent* entry = ::readdir(dir)) {
-          const char* const name = entry->d_name;
-          if (ScanDirCanHandleName(name)) {
-            // `IsDir` is proved to be required on Ubuntu running in Parallels on a Mac,
-            // with Bricks' directory mounted from Mac's filesystem.
-            // `entry->d_type` is always zero there, see http://comments.gmane.org/gmane.comp.lib.libcg.devel/4236
-            const std::string& path = JoinPath(directory, name);
-            const bool is_directory = IsDir(path);
-            const ScanDirParameters mask =
-                is_directory ? ScanDirParameters::ListDirsOnly : ScanDirParameters::ListFilesOnly;
-            if (static_cast<int>(parameters) & static_cast<int>(mask)) {
-              if (!item_handler(ScanDirItemInfo(name, path, is_directory))) {
-                return;
-              }
-            }
-          }
-        }
-      } else {
-        if (errno == ENOENT) {
-          CURRENT_THROW(DirDoesNotExistException(directory));
-        } else if (errno == ENOTDIR) {
-          CURRENT_THROW(PathNotDirException(directory));
-        } else {
-          CURRENT_THROW(FileException(directory));  // LCOV_EXCL_LINE
-        }
-      }
-#endif
+    WIN32_FIND_DATAA find_data;
+    HANDLE handle = ::FindFirstFileA((directory + "\\*.*").c_str(), &find_data);
+    if (handle == INVALID_HANDLE_VALUE) {
+      CURRENT_THROW(DirDoesNotExistException(directory));
     } else {
-      const std::function<bool(const ScanDirItemInfo&)> item_handler_recursive = [&item_handler, parameters](const ScanDirItemInfo& item_info) {
-        const ScanDirParameters mask = item_info.is_directory
-                                         ? ScanDirParameters::ListDirsOnly
-                                         : ScanDirParameters::ListFilesOnly;
-        if (static_cast<int>(parameters) & static_cast<int>(mask)) {
-          if (!item_handler(item_info)) {
-            return false;
+      struct ScopedCloseFindFileHandle {
+        HANDLE handle_;
+        ScopedCloseFindFileHandle(HANDLE handle) : handle_(handle) {}
+        ~ScopedCloseFindFileHandle() { ::FindClose(handle_); }
+      };
+      const ScopedCloseFindFileHandle closer(handle);
+      do {
+        const char* const name = find_data.cFileName;
+        if (ScanDirCanHandleName(name)) {
+          const bool is_directory = (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+          const ScanDirParameters mask = is_directory
+                                           ? ScanDirParameters::ListDirsOnly
+                                           : ScanDirParameters::ListFilesOnly;
+          const ScanDirItemInfo item_info(name, JoinPath(directory, name), is_directory);
+          if (static_cast<int>(parameters) & static_cast<int>(mask)) {
+            if (!item_handler(item_info)) {
+              return;
+            }
+          }
+          if (is_directory && recursive == ScanDirRecursive::Yes) {
+            ScanDirUntil(item_info.path, item_handler, parameters, recursive);
           }
         }
-        if (item_info.is_directory) {
-          ScanDirUntil<ITEM_HANDLER>(item_info.path, std::forward<ITEM_HANDLER>(item_handler), parameters, ScanDirRecursive::Yes);
-        }
-        return true;
-      };
-      ScanDirUntil(directory,
-                   item_handler_recursive,
-                   ScanDirParameters::ListFilesAndDirs,
-                   ScanDirRecursive::No);
+      } while (::FindNextFileA(handle, &find_data) != 0);
     }
+#else
+    DIR* dir = ::opendir(directory.c_str());
+    const auto closedir_guard = MakeScopeGuard([dir]() {
+      if (dir) {
+        ::closedir(dir);
+      }
+    });
+    if (dir) {
+      while (struct dirent* entry = ::readdir(dir)) {
+        const char* const name = entry->d_name;
+        if (ScanDirCanHandleName(name)) {
+          // `IsDir` is proved to be required on Ubuntu running in Parallels on a Mac,
+          // with Bricks' directory mounted from Mac's filesystem.
+          // `entry->d_type` is always zero there, see http://comments.gmane.org/gmane.comp.lib.libcg.devel/4236
+          const std::string path = JoinPath(directory, name);
+          const bool is_directory = IsDir(path);
+          const ScanDirParameters mask =
+              is_directory ? ScanDirParameters::ListDirsOnly : ScanDirParameters::ListFilesOnly;
+          if (static_cast<int>(parameters) & static_cast<int>(mask)) {
+            if (!item_handler(ScanDirItemInfo(name, path, is_directory))) {
+              return;
+            }
+          }
+          if (is_directory && recursive == ScanDirRecursive::Yes) {
+            ScanDirUntil(path, item_handler, parameters, recursive);
+          }
+        }
+      }
+    } else {
+      if (errno == ENOENT) {
+        CURRENT_THROW(DirDoesNotExistException(directory));
+      } else if (errno == ENOTDIR) {
+        CURRENT_THROW(PathNotDirException(directory));
+      } else {
+        CURRENT_THROW(FileException(directory));  // LCOV_EXCL_LINE
+      }
+    }
+#endif
   }
 
   template <typename ITEM_HANDLER>
