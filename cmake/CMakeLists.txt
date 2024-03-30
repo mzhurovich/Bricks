@@ -49,7 +49,7 @@ function(UseGitOrCloneImpl remote use_custom_branch custom_branch)
   # then add this repo's C5T library name to all targets built by this `CMakeLists.txt`.
   if(EXISTS "${C5T_DEP_DIR_${dep}}/.c5t_cmake_dependency")
     string(TOUPPER ${dep} UPPERCASE_DEP)
-    message(STATUS "Adding C5T_${UPPERCASE_DEP}")
+    message(STATUS "Adding `C5T_${UPPERCASE_DEP}`.")
     get_property(tmp GLOBAL PROPERTY C5T_LIBRARIES_PROPERTY)
     list(APPEND tmp "C5T_${UPPERCASE_DEP}")
     set_property(GLOBAL PROPERTY C5T_LIBRARIES_PROPERTY ${tmp})
@@ -73,12 +73,15 @@ else()
   message(STATUS "Skipping `googletest` as `C5T_NO_GTEST` is set.")
 endif()
 
-# TODO(dkorolev): Support more than one dependency, this is just the demo / test for v0.1.
-set(C5T_DEPS $ENV{C5T_DEPS})
+set_property(GLOBAL PROPERTY C5T_PATH ${C5T_DEP_DIR_current})
+
+set(C5T_DEPS_1 $ENV{C5T_DEPS})
 if(NOT "${C5T_DEPS}" STREQUAL "")
-  set_property(GLOBAL PROPERTY C5T_PATH ${C5T_DEP_DIR_current})
-  message(STATUS "Using C5T_DEPS=${C5T_DEPS}")
-  UseGitOrClone("https://github.com/c5t/${C5T_DEPS}")  # TODO(dkorolev): `foreach()`.
+  string(REPLACE ":" ";" C5T_DEPS_2 "${C5T_DEPS_1}")
+  string(REPLACE " " ";" C5T_DEPS_3 "${C5T_DEPS_2}")
+  foreach(C5T_DEP IN LISTS C5T_DEPS_3)
+    UseGitOrClone("https://github.com/c5t/${C5T_DEP}")
+  endforeach()
 endif()
 
 get_property(C5T_LIBRARIES GLOBAL PROPERTY C5T_LIBRARIES_PROPERTY)
