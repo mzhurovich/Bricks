@@ -380,7 +380,7 @@ class ReserveLocalPortImpl final {
       hint, nagle_algorithm_policy, max_connections);
 }
 
-// Acquires the local port with the explicltly provided number, or throws the exception.
+// Acquires the local port with the explicitly provided number, or throws the exception.
 // Used to cleanly construct the HTTP server on the specific port number,
 // or fail early, from the thread that is attempting to construct this HTTP server.
 // The alternative way used before has the issue that the port is acquired in the thread, not outside it,
