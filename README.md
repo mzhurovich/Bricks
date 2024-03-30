@@ -1,5 +1,26 @@
 # Current [![tests](https://github.com/C5T/Current/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/C5T/Current/actions/workflows/tests.yml?query=branch%3Astable) [![cmake](https://github.com/C5T/Current/actions/workflows/cmake.yml/badge.svg?branch=stable)](https://github.com/C5T/Current/actions/workflows/cmake.yml?query=branch%3Astable)
 
+## `cmake`
+
+As of 2024, we are making Current more `cmake`-friendly.
+
+The core paradigms of Current stay the same, namely:
+
+* Make it easy to develop in C++ with current.
+* The code should be self-explicable and hard to make a mistake in. 
+
+In practical terms, the trasition to `cmake` means even easier integration for user code. For an example, consider [this one](https://github.com/dkorolev/c5t_trivial_dep_example). The TL;DR: on how to start a Current-first C++ project in a few minutes is:
+
+* Start a repository.
+* Grab the `Makefile` into its root cirectory, copying it from [`C5T/Current/stable/cmake/Makefile`](https://github.com/C5T/Current/blob/stable/cmake/Makefile).
+* Add a [`.gitognore`](https://github.com/dkorolev/c5t_trivial_dep_example/blob/main/.gitignore) file, with ``CMakeLists.txt`, `current/`, `googletest/`, and `.current/` + `.current_debug/`.
+* Put your `*.cc` source files under `src/`, and
+* Just `make` would do the job.
+
+This approach is a bit unorthodox, since it invokes `make` to run a `cmake`-based build. On the other hand, this default `Makefile` will grab the latest `CMakeLists.txt` from `C5T/Current`, this default `Makefile` offers all the standard `debug/release/clean/test` targets, including a few other useful ones such as `fmt`, and this default `Makefile` makes vim the natural IDE of choice for C++ projects! =)
+
+## Components
+
 #### [TypeSystem](https://github.com/C5T/Current/blob/stable/typesystem/README.md)
 The type system used in Current framework.
 
