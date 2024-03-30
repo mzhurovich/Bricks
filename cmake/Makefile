@@ -9,14 +9,13 @@
 
 .PHONY: release debug release_dir debug_dir release_test debug_test test fmt clean
 
-# Then this `Makefile` is used to run a `cmake`-based Current build,
-# user-defined dependencies go here.
-# TODO(dkorolev): Support more than one of them on the `CMakeLists.txt` level.
+# When this `Makefile` is used to run a `cmake`-based Current build, user-defined dependencies go here.
+# No quotes needed. Space- or colon- or semicolon-separated all work fine.
 # TODO(dkorolev): Test that this works with `leveldb` too.
-C5T_DEPS=""
+C5T_DEPS=
 
 # Set this var to anything non-empty to speed up builds that do not require `googletest`.
-C5T_NO_GTEST=""
+C5T_NO_GTEST=
 
 DEBUG_BUILD_DIR=$(shell echo "$${DEBUG_BUILD_DIR:-.current_debug}")
 RELEASE_BUILD_DIR=$(shell echo "$${RELEASE_BUILD_DIR:-.current}")
